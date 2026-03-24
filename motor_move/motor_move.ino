@@ -1,10 +1,10 @@
 // Motor 1 (Right motor?)
-const int M1_RPWM = 3;
-const int M1_LPWM = 5;
+const int M1_RPWM = 9;
+const int M1_LPWM = 6;
 
 // Motor 2 (Left motor?)
-const int M2_RPWM = 6;
-const int M2_LPWM = 9;
+const int M2_RPWM = 3;
+const int M2_LPWM = 5;
 
 void setup() {
   Serial.begin(9600);
