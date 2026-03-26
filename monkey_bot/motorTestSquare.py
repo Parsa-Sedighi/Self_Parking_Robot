@@ -11,11 +11,6 @@ yaw turns the robot in place
 
 monkey_bot = Movement()
 
-  
-  
-
-  
-
 try:
     monkey_bot.surge(0.3,3) #forward
     monkey_bot.stop(1)
@@ -39,4 +34,3 @@ except KeyboardInterrupt:
 finally: 
     monkey_bot.stop()
     monkey_bot.close()
-monkey_bot.close()
