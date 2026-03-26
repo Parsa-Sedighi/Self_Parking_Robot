@@ -1,6 +1,6 @@
 // Motor 1 (Right motor?)
-const int M1_RPWM = 9;
-const int M1_LPWM = 6;
+const int M1_RPWM = 6;
+const int M1_LPWM = 9;
 
 // Motor 2 (Left motor?)
 const int M2_RPWM = 3;
