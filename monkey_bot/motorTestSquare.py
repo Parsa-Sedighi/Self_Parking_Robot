@@ -11,22 +11,32 @@ yaw turns the robot in place
 
 monkey_bot = Movement()
 
-monkey_bot.surge(0.3,3) #forward
-monkey_bot.stop(1)
-monkey_bot.yaw(-0.3,3)   #rotate
-monkey_bot.stop(1)      
+  
+  
 
-monkey_bot.surge(0.3,3) #forward
-monkey_bot.stop(1)
-monkey_bot.yaw(-0.3,5)   #rotate
-monkey_bot.stop(1)
+  
 
-monkey_bot.surge(0.3,3) #forward
-monkey_bot.stop(1)
-monkey_bot.yaw(-0.3,5)   #rotate
-monkey_bot.stop(1)
+try:
+    monkey_bot.surge(0.3,3) #forward
+    monkey_bot.stop(1)
+    monkey_bot.yaw(-0.3,3)   #rotate
+    monkey_bot.stop(1)      
 
-monkey_bot.surge(0.3,3) #forward
-monkey_bot.stop(1)
+    monkey_bot.surge(0.3,3) #forward
+    monkey_bot.stop(1)
+    monkey_bot.yaw(-0.3,5)   #rotate
+    monkey_bot.stop(1)
 
+    monkey_bot.surge(0.3,3) #forward
+    monkey_bot.stop(1)
+    monkey_bot.yaw(-0.3,5)   #rotate
+    monkey_bot.stop(1)
+
+    monkey_bot.surge(0.3,3) #forward
+    monkey_bot.stop(1)
+except KeyboardInterrupt:
+    print("Script Cancelled")
+finally: 
+    monkey_bot.stop()
+    monkey_bot.close()
 monkey_bot.close()
