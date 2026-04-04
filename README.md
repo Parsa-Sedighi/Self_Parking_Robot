@@ -2,18 +2,22 @@
 Repository containing our codebase for the project.
 
 # Create the virtual environment
-python -m venv venv
+py -3.11 -m venv venv
 
 # Activate it
-Linux/Mac:
+Linux/MacOS:
 source venv/bin/activate 
 Windows: 
 .\venv\Scripts\Activate.ps1
+
 # Install all dependencies at once
 pip install -r requirements.txt
+
 # Verify everything has been installed
 python -c "import tensorflow as tf; import openvino; import depthai; import cv2; print(f'TF: {tf.__version__} | OV: {openvino.__version__} | DepthAI: {depthai.__version__} | OpenCV: {cv2.__version__}')"
 
+# Should see the following on terminal:
+TF: 2.15.0 | OV: 2024.0.0-14509-34caeefd078-releases/2024/0 | DepthAI: 3.3.0 | OpenCV: 4.13.0
 
 
 
