@@ -1,8 +1,27 @@
 # SelfParkingRobot
+Repository containing our codebase for the project.
+
+# Create the virtual environment
+python -m venv venv
+
+# Activate it
+Linux/Mac:
+source venv/bin/activate 
+Windows: 
+.\venv\Scripts\Activate.ps1
+# Install all dependencies at once
+pip install -r requirements.txt
+# Verify everything has been installed
+python -c "import tensorflow as tf; import openvino; import depthai; import cv2; print(f'TF: {tf.__version__} | OV: {openvino.__version__} | DepthAI: {depthai.__version__} | OpenCV: {cv2.__version__}')"
+
+
+
 
 Link to official MonkeyBot GitHub:
 https://github.com/colin-szeto/monkey_bot/tree/main 
-# monkey_bot
+
+
+# First time set up on Raspberri Pi
 
 1. Generate SSH key on the Pi:
 
@@ -31,10 +50,3 @@ usb-Logitech_Gamepad_F310-event-joystick -> ../event3
 
 
 
-### entering the venv 
-
-# Create the virtual environment
-python3 -m venv venv
-
-# Activate it
-source venv/bin/activate

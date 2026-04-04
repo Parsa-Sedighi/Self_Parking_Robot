@@ -9,12 +9,16 @@ import numpy as np
 from tensorflow.keras.utils import to_categorical
 # Library to pop up a window and show image
 import matplotlib.pyplot as plt
+
+from tensorflow.keras import layers, models
+
 # Print the version
 print(f"Tensorflow version: tf.__version__")
 
 """ Data Pre-processing """
+
 #Open and read file
-train_df = pd.read_csv('computer_vision/train.csv')
+train_df = pd.read_csv('computer_vision/data/train.csv')
 # Pulls out the answer/label of each image between 0-9 
 Y_train = train_df['label']
 # Pulls out the Questions/pixels of each image, all 784 pixel values by dropping the label column
@@ -48,33 +52,62 @@ plt.show()
 
 """ Model Architecture """
 
-from tensorflow.keras import layers, models
-
-# 1. Build the Architecture
+# 1. Creates a linear stack of layers. Information enters at the top and flows through each layer
+# in order until it reaches the output.
 model = models.Sequential([
-    # First "Feature Detector"
+    # First "Feature Detector": 32 different filters/feature detector
+    # Each filter is a 3x3 pixel window that slides across the image looking for patterns like edges or corners
+    # relu = The "Rectified Linear Unit" turns negative numbers to zero, helping the model learn non-linear patters (like the difference between straight line and a curve)
+    # The model will expect the first layer to be 28 x 28 grayscale image
     layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    # Downsampler, looks at 2 x 2 pixel blocks and keeps only the highest value. It shrinks the image size by
+    # half, making the model faster and focusing on the most important features.
     layers.MaxPooling2D((2, 2)),
     
-    # Second "Feature Detector"
+    # Second "Feature Detector": Since first layer found basic edges, this layer can now
+    # combine those edges to find more complex shapes (like the loops in a '6' or an '8').
     layers.Conv2D(64, (3, 3), activation='relu'),
+    # Shrinks the data again, the image is very small but packed with high level information about shape it found
     layers.MaxPooling2D((2, 2)),
     
-    # Flattening into a 1D list for the final decision
+    # Flattening 2D into a 1D list for the final decision. You have to "flatten" the data
+    # before you can feed it into the final decision making neurons
     layers.Flatten(),
+    # A fully connected layer: these 64 neurons look at all the features found by the previous layers
+    # and start voting on which digit it might be.
     layers.Dense(64, activation='relu'),
     
     # Output Layer: 10 neurons (one for each digit 0-9)
+    #softmax turns the output into probabilities. Instead of just saying "it's a 3," 
+    # it might say: "95%" chance it's a 3, 2% chance it's an 8, 3% chance it's a 2.
     layers.Dense(10, activation='softmax')
 ])
 
 # 2. Compile
-model.compile(optimizer='adam',
-              loss='categorical_crossentropy',
-              metrics=['accuracy'])
-
+# Tells the model how to improve itself during training
+model.compile(optimizer='adam', # the "driver". It's an algorithm that decides how much to change the weight of the neurons based on errors.
+              loss='categorical_crossentropy', # The judge. This formula calculates exactly how "wrong" the model was. since to_categorial was used earlier, this is the standar math for multi-class problems
+              metrics=['accuracy']) # Tells the TensorFlow to print out the percentage of correct guessses during trainning so you can track progress
+#Prints a table showing every layer, the total number of "Parameters" (the indivdual weights the model has to learn)
 model.summary()
 
+""" Training """
 
-print("END")
+# 3. Train the Model
+# Training command = model.fit
 
+history = model.fit(
+    X_train, Y_train, 
+    # Study rounds, the model will look at all 42,000 images 10 seperatr times. Usually, accuracy goes up with each epoch.
+    epochs=10,           # How many times to go through the whole dataset
+    # Instead of looking at all images at once, the model looks at 32, calculates the error, adjusts its brain and move to the next 32, this is faster and uses less memory
+    batch_size=32,       # How many images to look at before updating weights
+    # The model hides 10% of the data from itself. After every epoch, it tests itself on this "hidden" data to see if it's actually learning patterns or just memorizing the pictures, AKA overfitting
+    validation_split=0.1 # Save 10% of data to test itself during training
+)
+ # 4. Saving the model
+#model.save('computer_vision/digit_model.h5')
+#print("Model saves as digital_model.h5")
+
+model = tf.keras.models.load_model('computer_vision/digit_model.h5')
+model.save('computer_vision/digit_model_saved') # This creates a folder

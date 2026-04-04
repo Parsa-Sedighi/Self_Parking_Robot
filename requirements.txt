@@ -1,18 +1,14 @@
-serial
+# Core Data and Visualization
+numpy<2.0.0
 pandas
 matplotlib
+pyserial
 
-pip install tensorflow==2.15.0
-pip install openvino==2024.0.0
-pip install depthai==3.3.0
+# Computer Vision & Hardware
+opencv-python
+depthai==3.3.0
+blobconverter
 
-Once the installs finish, run this small snippet in your terminal to ensure both libraries are talking to your Python 3.11 engine correctly:
-python -c "import openvino; import depthai; print(f'OpenVINO: {openvino.__version__}'); print(f'DepthAI: {depthai.__version__}')"
-
-It should output:
-
-OpenVINO: 2024.0.0 (or 2023.1.0)
-
-DepthAI: 3.3.0
-
-DataSet: https://www.kaggle.com/competitions/digit-recognizer/data
+# AI Frameworks (Version locked for OAK-D compatibility)
+tensorflow-intel==2.15.0
+openvino==2024.0.0
