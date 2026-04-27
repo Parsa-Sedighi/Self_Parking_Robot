@@ -9,6 +9,8 @@ import numpy as np
 from tensorflow.keras.utils import to_categorical
 # Library to pop up a window and show image
 import matplotlib.pyplot as plt
+# Image generator to simulate the picture in different angles
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 from tensorflow.keras import layers, models
 
@@ -48,7 +50,7 @@ plt.imshow(X_train[0][:,:,0], cmap='gray')
 # To find the position of the 1. If the 1 is in the 3rd spot, it prints Label:3.
 plt.title(f"Label: {np.argmax(Y_train[0])}")
 # Command that pauses script and opens the winfoe on screen to show digit
-plt.show()
+#plt.show()
 
 """ Model Architecture """
 
@@ -91,23 +93,54 @@ model.compile(optimizer='adam', # the "driver". It's an algorithm that decides h
 #Prints a table showing every layer, the total number of "Parameters" (the indivdual weights the model has to learn)
 model.summary()
 
-""" Training """
+""" Training  with Augmentation """
 
-# 3. Train the Model
-# Training command = model.fit
+# 3. Setup the Generator
+# Rationale: Instead of showing the model the same 42,000 "perfect" images, 
+# this object creates infinite variations on the fly. This prevents the 
+# model from just memorizing the Kaggle data (overfitting).
+datagen = ImageDataGenerator(
+    rotation_range=15,    # Rationale: Robots aren't always level. This teaches it to recognize 
+                          # digits even if the camera is tilted up to 15 degrees.
 
-history = model.fit(
-    X_train, Y_train, 
-    # Study rounds, the model will look at all 42,000 images 10 seperatr times. Usually, accuracy goes up with each epoch.
-    epochs=10,           # How many times to go through the whole dataset
-    # Instead of looking at all images at once, the model looks at 32, calculates the error, adjusts its brain and move to the next 32, this is faster and uses less memory
-    batch_size=32,       # How many images to look at before updating weights
-    # The model hides 10% of the data from itself. After every epoch, it tests itself on this "hidden" data to see if it's actually learning patterns or just memorizing the pictures, AKA overfitting
-    validation_split=0.1 # Save 10% of data to test itself during training
+    width_shift_range=0.1, # Rationale: The digit won't always be perfectly centered in the
+    height_shift_range=0.1, # camera frame. This simulates the digit being off-center.
+    
+    zoom_range=0.2,       # Rationale: Simulates the robot being closer or further from the
+                          # parking spot, changing the relative size of the number.
+    fill_mode='constant', # Rationale: When an image is rotated or shifted, "empty" pixels 
+    cval=0,               # are created at the edges. 'constant' with 0 fills them with Black,
+                          # matching our MNIST background so the model doesn't get confused.
+    
+    validation_split=0.1  # Rationale: Tells the generator to set aside 10% of our data 
+                          # to act as a "final exam" the model hasn't seen during practice.
 )
- # 4. Saving the model
-#model.save('computer_vision/digit_model.h5')
-#print("Model saves as digital_model.h5")
 
-model = tf.keras.models.load_model('computer_vision/digit_model.h5')
-model.save('computer_vision/digit_model_saved') # This creates a folder
+# Create training and validation Flow
+# Instead of looking at all images at once, the model looks at 32, calculates the error, adjusts its brain and move to the next 32, this is faster and uses less memory
+# batch_size =  # How many images to look at before updating weights
+train_generator = datagen.flow(X_train, Y_train, batch_size=32, subset = 'training')
+val_generator = datagen.flow(X_train, Y_train, batch_size=32, subset = 'validation')
+
+# 4. Train the Model
+# Training command = model.fit
+# Rationale: This is the actual "study session." We use the generators instead of 
+# raw arrays so the model sees a slightly different version of the data in every epoch.
+history = model.fit(
+    train_generator,      # Rationale: Feeds the augmented "messy" images into the network.
+    
+    epochs=15,            # Rationale: We use more epochs (15 vs 10) because augmented 
+                          # data is "noisier" and takes longer for the brain to process.
+    
+    validation_data=val_generator, # Rationale: After every round (epoch), the model tests
+                                   # itself on this stream to report its "Validation Accuracy."
+    
+    verbose=1             # Rationale: Shows a progress bar so you can monitor the 
+                          # Loss and Accuracy in real-time.
+)
+ # 5. Saving the model
+model.save('computer_vision/digit_model2.h5')
+print("Model saves as digital_model2.h5")
+
+#model = tf.keras.models.load_model('computer_vision/digit_model2.h5')
+#model.save('computer_vision/digit_model_saved') # This creates a folder

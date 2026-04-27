@@ -6,8 +6,10 @@ pyserial
 
 # Computer Vision & Hardware
 opencv-python
-depthai==3.3.0
+depthai==2.24.0
 blobconverter
+scipy
+
 
 # AI Frameworks (Version locked for OAK-D compatibility)
 tensorflow-intel==2.15.0
