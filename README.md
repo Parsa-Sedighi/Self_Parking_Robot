@@ -19,7 +19,15 @@ python -c "import tensorflow as tf; import openvino; import depthai; import cv2;
 # Should see the following on terminal:
 TF: 2.15.0 | OV: 2024.0.0-14509-34caeefd078-releases/2024/0 | DepthAI: 3.3.0 | OpenCV: 4.13.0
 
+# Deployment
+sudo apt-get update && sudo apt-get upgrade
+python3 -m pip install depthai opencv-python numpy pyserial
 
+
+echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"' | sudo tee /etc/udev/rules.d/80-movidius.rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
+
+sudo usermod -a -G dialout $USER
 
 Link to official MonkeyBot GitHub:
 https://github.com/colin-szeto/monkey_bot/tree/main 
