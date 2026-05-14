@@ -1,0 +1,18 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+
+# Python Cache & Compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Build directories (Common in ROS/Robotics)
+build/
+install/
+log/
+
+# OS generated files
+.DS_Store
