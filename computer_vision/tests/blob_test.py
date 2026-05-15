@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 
 # --- CONFIGURATION ---
-BLOB_PATH = "computer_vision/models/digit_model2.blob" 
+BLOB_PATH = "computer_vision/models/digit_model_v3.blob" 
 
 # 1. Initialize Pipeline
 pipeline = dai.Pipeline()
