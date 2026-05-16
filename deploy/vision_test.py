@@ -1,86 +1,91 @@
 import depthai as dai
 import cv2
 import numpy as np
-import time
 
-# 1. Setup OAK-D Pipeline (Version 2.24.0 Standard)
+# --- CONFIGURATION ---
+BLOB_PATH = "computer_vision/digit_model.blob" 
+SENSITIVITY = 150       
+MIN_AREA = 500          
+MAX_AREA = 50000        
+
+# 1. Initialize the Pipeline
 pipeline = dai.Pipeline()
 
-cam = pipeline.createColorCamera()
-cam.setBoardSocket(dai.CameraBoardSocket.RGB) 
+# 2. Define Nodes using 2.32.0.0 Namespace
+cam = pipeline.create(dai.node.ColorCamera)
+nn = pipeline.create(dai.node.NeuralNetwork)
+xout_video = pipeline.create(dai.node.XLinkOut)
+xin_nn = pipeline.create(dai.node.XLinkIn)
+xout_nn = pipeline.create(dai.node.XLinkOut)
+
+# 3. Configure Nodes
+cam.setBoardSocket(dai.CameraBoardSocket.CAM_A)
 cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam.setInterleaved(False)
-cam.setPreviewSize(640, 480)
+cam.setPreviewSize(640, 480) 
 
-nn = pipeline.createNeuralNetwork()
-nn.setBlobPath("computer_vision/digit_model.blob")
+nn.setBlobPath(BLOB_PATH)
 
-xin_nn = pipeline.createXLinkIn()
+xout_video.setStreamName("video")
 xin_nn.setStreamName("nn_in")
-xin_nn.out.link(nn.input)
-
-xout_nn = pipeline.createXLinkOut()
 xout_nn.setStreamName("nn_out")
+
+# 4. Link Nodes
+cam.preview.link(xout_video.input)
+xin_nn.out.link(nn.input)
 nn.out.link(xout_nn.input)
 
-xout_video = pipeline.createXLinkOut()
-xout_video.setStreamName("video")
-cam.preview.link(xout_video.input)
-
-# 2. Diagnosis Loop
+# 5. Inference Loop
 with dai.Device(pipeline) as device:
+    print(f"--- PI 4 INFERENCE ONLINE | BUS SPEED: {device.getUsbSpeed()} ---")
+    
     q_video = device.getOutputQueue(name="video", maxSize=4, blocking=False)
     q_nn_in = device.getInputQueue(name="nn_in")
     q_nn_out = device.getOutputQueue(name="nn_out", maxSize=4, blocking=False)
-    
-    print("--- VISION DIAGNOSIS MODE ---")
-    print("Scanning for any shapes... (Press Ctrl+C to stop)")
 
-    try:
-        while True:
-            in_video = q_video.get()
-            frame = in_video.getCvFrame()
-            
-            # CV Pre-Processing
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            blur = cv2.GaussianBlur(gray, (5, 5), 0)
-            thresh = cv2.adaptiveThreshold(blur, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                                           cv2.THRESH_BINARY_INV, 11, 2)
-            
-            contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            
-            found_anything = False
-            for cnt in contours:
-                area = cv2.contourArea(cnt)
+    while True:
+        frame = q_video.get().getCvFrame()
+        
+        # Preprocessing Pipeline (Computer Vision)
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        _, thresh = cv2.threshold(gray, SENSITIVITY, 255, cv2.THRESH_BINARY)
+        
+        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        for cnt in contours:
+            area = cv2.contourArea(cnt)
+            if MIN_AREA < area < MAX_AREA:
                 x, y, w, h = cv2.boundingRect(cnt)
-                aspect_ratio = float(w)/h
+                roi = thresh[y:y+h, x:x+w]
+                if roi.size == 0: continue
                 
-                # Check for ANY reasonably sized object
-                if 100 < area < 100000:
-                    found_anything = True
-                    
-                    # Send to VPU for identification
-                    roi = thresh[y:y+h, x:x+w]
-                    roi_res = cv2.resize(roi, (28, 28))
-                    
-                    nn_data = dai.ImgFrame()
-                    nn_data.setFrame(roi_res)
-                    nn_data.setWidth(28)
-                    nn_data.setHeight(28)
-                    q_nn_in.send(nn_data)
-                    
-                    res = q_nn_out.get()
-                    prediction = res.getFirstLayerFp16()
+                # Prepare ROI for the .blob model (28x28 grayscale)
+                roi_res = cv2.resize(roi, (28, 28))
+                nn_data = dai.ImgFrame()
+                nn_data.setData(roi_res.flatten().astype(np.uint8))
+                nn_data.setWidth(28)
+                nn_data.setHeight(28)
+                q_nn_in.send(nn_data)
+                
+                # Retrieve Hardware-Accelerated Prediction
+                in_nn = q_nn_out.tryGet()
+                if in_nn is not None:
+                    prediction = in_nn.getFirstLayerFp16()
                     digit = np.argmax(prediction)
-                    confidence = np.max(prediction)
+                    conf = np.max(prediction)
                     
-                    # REPORT EVERYTHING to the terminal
-                    print(f"[BLOB FOUND] Area: {int(area)} | Ratio: {aspect_ratio:.2f} | AI thinks it's a '{digit}' ({confidence*100:.1f}%)")
+                    if conf > 0.8:
+                        # Draw Quantitative Results on Screen
+                        label = f"ID: {digit} ({conf*100:.1f}%)"
+                        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
+                        cv2.putText(frame, label, (x, y-10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                        print(f"Detected {digit} with {conf*100:.1f}% confidence")
 
-            if not found_anything:
-                print("...Searching (No shapes detected)...")
-            
-            time.sleep(0.5) # Slow down the text so you can read it
+        # Show Output Windows
+        cv2.imshow("Main Feed (Quantitative)", frame)
+        cv2.imshow("Robot Brain View (Qualitative)", cv2.resize(thresh, (400, 300)))
 
-    except KeyboardInterrupt:
-        print("\nDiagnosis Complete.")
+        if cv2.waitKey(1) == ord('q'):
+            break
+
+cv2.destroyAllWindows()

@@ -1,36 +1,42 @@
 import depthai as dai
 import cv2
 
+# 1. Initialize the Pipeline
 pipeline = dai.Pipeline()
 
+# 2. Define the Camera Node
+# Using ColorCamera as it is the most stable for your specific 2.32.0.0 build
 cam = pipeline.create(dai.node.ColorCamera)
 cam.setBoardSocket(dai.CameraBoardSocket.CAM_A)
-
-# --- THE FIX: LOW RES + LOW FPS ---
-# We use 720p sensor res but only a 300x300 preview to save RAM
-cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_720_P)
-cam.setPreviewSize(300, 300) 
-cam.setFps(10)  # Lowering to 10 FPS reduces the load by 66%
+cam.setResolution(dai.ColorCameraProperties.SensorResolution.THE_1080_P)
 cam.setInterleaved(False)
+cam.setPreviewSize(1280, 720) 
 
+# 3. Define the XLinkOut Node
+# In 2.32.0.0, this MUST be dai.node.XLinkOut (Correct Casing)
 xout = pipeline.create(dai.node.XLinkOut)
 xout.setStreamName("video")
+
+# 4. Link the Nodes
 cam.preview.link(xout.input)
 
+# 5. Device Lifecycle
 with dai.Device(pipeline) as device:
-    # Force USB 2.0 mode if the cable or Pi port is struggling
-    # print(f"USB Speed: {device.getUsbSpeed()}") 
+    # Verify SuperSpeed (USB 3.0) on your Pi 4
+    print(f"--- PI 4 SYSTEM ONLINE ---")
+    print(f"DepthAI Version: {dai.__version__}")
+    print(f"Bus Speed: {device.getUsbSpeed()}")
     
-    q = device.getOutputQueue(name="video", maxSize=1, blocking=False)
-    
-    print("Ultralight Feed Active. Press 'q' to quit.")
-    
+    q_video = device.getOutputQueue(name="video", maxSize=4, blocking=False)
+
+    print("Streaming... Press 'q' to quit.")
     while True:
-        in_frame = q.tryGet()
-        if in_frame is not None:
-            frame = in_frame.getCvFrame()
-            cv2.imshow("ULTRALIGHT VIEW", frame)
-        
+        in_frame = q_video.get()
+        frame = in_frame.getCvFrame()
+
+        # Display on your HDMI monitor
+        cv2.imshow("Pi 4 - OAK-D Stream (V2.32)", frame)
+
         if cv2.waitKey(1) == ord('q'):
             break
 
